@@ -1,4 +1,4 @@
-#!/usr/local bin/perl
+#!/usr/local/bin/perl
 
 =head1 Documentation
 
@@ -47,6 +47,9 @@ _______________________________________________________________________
 
     -help     = print this message
 
+    -getTemplate =  writes out an example template file,
+                    which the user can edit
+
 * a configuration file in the following format determines the page layout for the website:
 
  My Super Website
@@ -85,7 +88,7 @@ use CGI::Pretty;
 # the following are the default options for making a website that will
 # be utilized by getopts
 
-my ($templatefile, $sitename, $pagecolor, $image, $help, $verbose);
+my ($templatefile, $sitename, $pagecolor, $image, $help, $getTemplate, $verbose);
 
 # defaults for this client
 my $font     = "technical, Verdana, Tahoma, Arial, sans-serif";
@@ -102,14 +105,17 @@ my %args = (template => \$templatefile,
 	    image    => \$image,
 	    bgcolor  => \$bgcolor,
 	    verbose  => \$verbose,
-	    help     => \$help);
+	    help     => \$help,
+	    getTemplate  => \$getTemplate);
 
 
-unless( &GetOptions( \%args, "template=s", "rootpath=s", "sitename=s", "font=s", "accent=s", "image=s", "bgcolor=s", "verbose", "help") ){
+unless( &GetOptions( \%args, "template=s", "rootpath=s", "sitename=s", "font=s", "accent=s", "image=s", "bgcolor=s", "verbose", "help", "getTemplate") ){
     &Usage;
 }
 
+&WriteTemplate if ($getTemplate);
 &Usage if ($help || !$templatefile || !$sitename);
+
 
 print <<EOF;
 
@@ -597,16 +603,69 @@ _______________________________________________________________________
 
     -help     = print this message
 
+    -getTemplate =  writes out an example template file,
+                    which the user can edit, and exits
+
+
 Many of the optional arguments can be configured afterwards, in the
 resulting stylesheet.
 
 EOF
 
-(!$templatefile) && print "ERROR : You did not provide a template file to work on.  \n\n";
-(!$sitename) && print "ERROR : You did not provide a sitename create the directory.  \n\n";
+(!$templatefile && !$help) && print "ERROR : You did not provide a template file to work on.  \n\n";
+(!$sitename && !$help) && print "ERROR : You did not provide a sitename create the directory.  \n\n";
 
 
     exit;
 
+
+}
+
+
+# ---------------------------------------------------------------------
+sub WriteTemplate {
+# ---------------------------------------------------------------------
+# this subroutine simply opens a file titled page_titles.txt and
+# writes out an editable template, and exits
+
+
+    my $temp = "site_template.txt";
+
+    print STDOUT "Writing an example template file : $temp \n";
+
+    open (CONF, ">$temp") || die "Couldn't open example template file, $temp\n";
+
+    print CONF <<EOF;
+My Super Website
+# Above is the project title. It has to be in the first line.
+
+# configuration for the makeWebsite.pl script
+# -------------------------------------------
+# author: Christian Rees, (c) 2000, <rees\@genome.stanford.edu>
+ 
+# This file defines the website skeletons layout
+# Change the values below for your own purposes.
+
+# The following lines define the sections of your website.
+# Each section will have it's own page.
+# If you put XXX into a section description, it will
+# be replaced with the project title.
+ 
+home=XXX Homepage
+projects=Some stuff I did
+software=Programs you might like
+authors=the people who worked on the XXX project
+links=A collection of interesting hyperlinks
+EOF
+
+    close(CONF);
+
+    print STDOUT "\nYou can now edit $temp \n",
+    "and then re-run $0 \n",
+    "using the option \'-template $temp)\' .\n\n";
+
+    print STDOUT "Finished.  Exiting... \n";
+
+    exit(0);
 
 }
