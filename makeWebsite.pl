@@ -7,33 +7,45 @@ This program creates an HTML Skeleton for a website
  Author: Christian Rees, 2000 <rees@genome.stanford.edu>
  Re-visited: John Matese, 2004 <jcmatese@genomics.princeton.edu>
 
-
+_______________________________________________________________________
    Usage:
-$0 -template <file/name> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
+$0 -template <file/name> -sitename <sitename> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
 _______________________________________________________________________
 
 
-    -template = required input file containing the project name and page titles
+    -template = required input file containing the project name and
+	        page titles For more information on the template
+	        format, try 'pod2text $0'
 
-    -rootpath = optional destination where the project website will be created,
-	        defaults to the working directory[NOT IMPLEMENTED]
+    -sitename = required text_string which will be the name of the
+	        directory (newly created, if non-existent), where all
+	        the web pages will be written to.  A simple one word
+	        string is all that is needed.
 
-    -font     = optional font face for the website (written to stylesheet)
- 	        defaults to $font ; written/editable in stylesheet
+    -rootpath = optional destination where the project website
+	        directory will be created; defaults to '$rootpath'
 
-    -accent   = optional color for table header cells (website accent color)
-                defaults to '$thcolor' ; written/editable in stylesheet
+    -font     = optional font face for the website (written to
+ 	        stylesheet) defaults to '$font' ; written/editable in
+ 	        stylesheet
 
-    -image    = optional image which could be displayed at the top of every page
-	        default to the project name within the template, as a text header
+    -accent   = optional color for table header cells (website accent
+                color) defaults to '$thcolor' ; written/editable in
+                stylesheet
 
-    -bgcolor  = optional background color for all webpages (body backgroud)
-                defaults to '$bgcolor' ; written/editable in stylesheet
+    -image    = optional image which could be displayed at the top of
+	        every page.  The value for the image should be a
+	        relative or absolute URL.  If no image is specified
+	        the header defaults to the project name within the
+	        template, as a text header
+
+    -bgcolor  = optional background color for all webpages (body
+                backgroud) defaults to '$bgcolor' ; written/editable
+                in stylesheet
 
     -verbose  = show feedback messages during run
 
     -help     = print this message
-
 
 * a configuration file in the following format determines the page layout for the website:
 
@@ -547,7 +559,7 @@ sub Usage {
    user-defined template
 _______________________________________________________________________
    Usage:
-$0 -template <file/name> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
+$0 -template <file/name> -sitename <sitename> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
 _______________________________________________________________________
 
 
@@ -557,7 +569,8 @@ _______________________________________________________________________
 
     -sitename = required text_string which will be the name of the
 	        directory (newly created, if non-existent), where all
-	        the web pages will be written to
+	        the web pages will be written to.  A simple one word
+	        string is all that is needed.
 
     -rootpath = optional destination where the project website
 	        directory will be created; defaults to '$rootpath'
