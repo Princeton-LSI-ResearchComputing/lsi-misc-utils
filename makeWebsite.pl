@@ -4,130 +4,245 @@
 
 This program creates an HTML Skeleton for a website
 
-Author: Christian Rees, 2000 <rees@genome.stanford.edu>
-Re-visited: John Matese, 2004 <jcmatese@genomics.princeton.edu>
+ Author: Christian Rees, 2000 <rees@genome.stanford.edu>
+ Re-visited: John Matese, 2004 <jcmatese@genomics.princeton.edu>
+
+
+   Usage:
+$0 -template <file/name> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
+_______________________________________________________________________
+
+
+    -template = required input file containing the project name and page titles
+
+    -rootpath = optional destination where the project website will be created,
+	        defaults to the working directory[NOT IMPLEMENTED]
+
+    -font     = optional font face for the website (written to stylesheet)
+ 	        defaults to $font ; written/editable in stylesheet
+
+    -accent   = optional color for table header cells (website accent color)
+                defaults to '$thcolor' ; written/editable in stylesheet
+
+    -image    = optional image which could be displayed at the top of every page
+	        default to the project name within the template, as a text header
+
+    -bgcolor  = optional background color for all webpages (body backgroud)
+                defaults to '$bgcolor' ; written/editable in stylesheet
+
+    -verbose  = show feedback messages during run
+
+    -help     = print this message
 
 
 * a configuration file in the following format determines the page layout for the website:
 
-Mikes Stuff
-# Above is the project title. It has to be in the first line.
-
-# configuration for the makeWebsite.pl script
-# -------------------------------------------
-# author: Christian Rees, (c) 2000, <rees@genome.stanford.edu>
-
-# This file defines the website skeletons layout
-# Change the values below for your own purposes.
-
-# The following lines define the sections of your website.
-# Each section will have it's own page.
-# If you put XXX into a section description, it will
-# be replaced with the project title.
-
-home=XXX Homepage
-projects=Some stuff I did
-software=Programs you might like
-authors=the people who did this
-links=A collection of interesting hyperlinks
+ My Super Website
+ # Above is the project title. It has to be in the first line.
+ 
+ # configuration for the makeWebsite.pl script
+ # -------------------------------------------
+ # author: Christian Rees, (c) 2000, <rees@genome.stanford.edu>
+ 
+ # This file defines the website skeletons layout
+ # Change the values below for your own purposes.
+ 
+ # The following lines define the sections of your website.
+ # Each section will have it's own page.
+ # If you put XXX into a section description, it will
+ # be replaced with the project title.
+ 
+ home=XXX Homepage
+ projects=Some stuff I did
+ software=Programs you might like
+ authors=the people who worked on the XXX project
+ links=A collection of interesting hyperlinks
 
 =cut
 
 use strict;
 
 use Getopt::Long;
+use File::Copy;
+use File::Basename;
 
 use CGI qw/:standard :netscape/;
 use CGI::Pretty;
 
-my $projectName;
-my @pageNames;
 
-my $templatefile = shift(@ARGV);
+# the following are the default options for making a website that will
+# be utilized by getopts
 
-&readPageTitles(); 
+my ($templatefile, $sitename, $pagecolor, $image, $help, $verbose);
 
-my %pageIndex; 
+# defaults for this client
+my $font     = "technical, Verdana, Tahoma, Arial, sans-serif";
+my $thcolor  = "#9B664E"; # "LightSlateGrey", "grey" # color for header backgrounds
+my $thfont   = "copperplate";
+my $bgcolor  = "#E5D8C2"; # "white", background color
+my $rootpath = '/Genomics/lsi/www/html/pubs/';
 
-my $font_face = "Verdana, Tahoma, Arial, sans-serif";
-my $hdrbgcolor= "#18067D"; # grey = #EEEEEE # color for header backgrounds
-my $color     = "white"; # font color
-my $name;
+my %args = (template => \$templatefile,
+	    rootpath => \$rootpath,
+	    sitename => \$sitename,
+	    font     => \$font,
+	    accent   => \$thcolor,
+	    image    => \$image,
+	    bgcolor  => \$bgcolor,
+	    verbose  => \$verbose,
+	    help     => \$help);
 
-my $stylesheet;
 
-print "Automatic Website Generator\n";
-print "----------------------------\n";
-print "Author: Christian Rees, (c) Stanford University 2000;\nRe-factored, John Matese, Princeton University\n";
-print "Press <Control-D> to continue\n";
+unless( &GetOptions( \%args, "template=s", "rootpath=s", "sitename=s", "font=s", "accent=s", "image=s", "bgcolor=s", "verbose", "help") ){
+    &Usage;
+}
+
+&Usage if ($help || !$templatefile || !$sitename);
+
+print <<EOF;
+
+Automatic Website Generator
+---------------------------
+Author:     Christian Rees, (c) Stanford University 2000
+Re-visited: John Matese, Princeton University
+
+EOF
+
+my ($projectName, $pageNamesArrRef) = &readPageTitles();
+
+&MakeDirectories($rootpath, $sitename);
+
+my %pageIndex;
+
+my $stylesheet = lc($projectName);
+$stylesheet =~ s/ /_/ig;
+$stylesheet .= ".css";
 
 # ------------------------------------------
 # create skeleton & content pages for each section 
 # including SSI statements for the content
 
-foreach $name ( @pageNames ) {
 
-    open (OUT, ">$name.shtml") || die "cannot open file: $!\n";
+for (my $i=0; $i<@{$pageNamesArrRef}; $i++) {
+
+
+    $verbose && print "Writing $$pageNamesArrRef[$i].shtml and $$pageNamesArrRef[$i].html\n";
+
+    open (OUT, ">$$pageNamesArrRef[$i].shtml") || die "cannot open file, $$pageNamesArrRef[$i]: $!\n";
     select (OUT);
-    create_skeleton($name);
+    create_skeleton($$pageNamesArrRef[$i]);
     select(STDOUT); 
     close (OUT);
-    
-    open (OUT, ">$name.html") || die "cannot open file: $!\n";
+
+    if ($i==0){
+	$verbose && print "\tMaking a link to $$pageNamesArrRef[$i].shtml from index.shtml\n";
+	symlink("$$pageNamesArrRef[$i].shtml", "index.shtml") || warn "\tWARNING: Cannot symlink file.txt: $!.  Continuing on, as this link is only a convenience.\n";
+    }
+
+    open (OUT, ">$$pageNamesArrRef[$i].html") || die "cannot open file, $$pageNamesArrRef[$i]: $!\n";
     select (OUT);
-    create_content($name);
+    create_content($$pageNamesArrRef[$i]);
     select(STDOUT); 
     close (OUT);
-    
+
 }
+
 
 # ------------------------------------------
 # create the left menu file & footer file
 
+$verbose && print "Writing leftmenu.html\n";
 open (OUT, ">leftmenu.html") || die "cannot open file: $!\n";
 select (OUT);
-create_left_menu();
-select(STDOUT); 
+create_left_menu($pageNamesArrRef);
+select(STDOUT);
 close (OUT);
 
+$verbose && print "Writing header.html\n";
 open (OUT, ">header.html") || die "cannot open file: $!\n";
 select (OUT);
 create_header();
-select(STDOUT); 
+select(STDOUT);
 close (OUT);
 
+$verbose && print "Writing footer.html\n";
 open (OUT, ">footer.html") || die "cannot open file: $!\n";
 select (OUT);
-create_footer();
-select(STDOUT); 
+create_footer($pageNamesArrRef);
+select(STDOUT);
 close (OUT);
 
+$verbose && print "Writing $stylesheet\n";
 open (OUT, ">$stylesheet") || die "cannot open file: $!\n";
 select (OUT);
 create_stylesheet();
-select(STDOUT); 
+select(STDOUT);
 close (OUT);
 
 
 
 # ------------------------------------------
-
+# end of main program
 exit;
+
+
+# ---------------------------------------------------------------------
+sub MakeDirectories {
+# ---------------------------------------------------------------------
+#  this subroutine makes directories into which the html skeleton
+#  files are created
+
+    my ($rootpath, $sitename) = @_;
+
+    unless(-d $rootpath) {die "The specifed root directory ($rootpath) does not exist, or is not a directory."}
+    unless(-w $rootpath) {die "The specifed rootpath ($rootpath) is not writeable."};
+
+
+    $sitename =~ tr/ /_/; # transform spaces to underscore
+
+    my $sitepath = $rootpath.$sitename;
+    $verbose && print "Creating website directory: $sitepath\n";
+    mkdir($sitepath) || die "Could not make directory ($sitepath) : $!\n";
+
+
+    if ($image) {
+
+	$verbose && print "Copying $image to $sitepath\n";
+	copy($image, $sitepath) || die "Could not copy header image ($image) to the website ($sitepath): $!\n";
+
+    }
+
+    $verbose && print "Changing directory to $sitepath\n";
+
+    chdir($sitepath) || die "Cannot chdir to $sitepath ($!)";
+
+
+}
+
 
 # ---------------------------------------------------------------------
 sub readPageTitles {
 # ---------------------------------------------------------------------
+# this subrotine simply read in the template file and processes it for
+# the project name and pagetitles
 
-    my ($key, $value);
+    $verbose && print "Reading page titles : $templatefile\n";
 
     open(IN, "$templatefile") || die "cannot open Page Titles: $!\n";
     my @titles = (<IN>);
     chomp(@titles);
     close(IN);
 
-    $projectName = shift @titles;
+    my $project = shift @titles;
+    chomp($project);
+
+    my @names;
 
     foreach (@titles) {
+
+	# substitute all instances of XXX with project name within the
+	# line
+	$_ =~s/XXX/$project/g;
 
 	chomp;    # no newline
 	s/#.*//;  # no comment
@@ -136,23 +251,26 @@ sub readPageTitles {
 	s/\s+$//; # no trailing white
 #	s/ //g;
 	next unless length; # anything left?
-#       print "$_\n";
-	($key, $value) = split(/\s*=\s*/, $_, 2);
-#	$tmphash{$var} = $value; 
-	
-#	($key, $value) = split(/=/, $_);
-	push @pageNames, $key;
 
-	$value =~ s/XXX/$projectName/;
+	$verbose && print "\t$_\n";
+
+	my ($key, $value) = split(/\s*=\s*/, $_, 2);
+	
+	push (@names, $key);
+
 	$pageIndex{$key} = $value;
     }
 
+    return ($project, \@names);
 
 }
+
 
 # ---------------------------------------------------------------------
 sub create_skeleton {
 # ---------------------------------------------------------------------
+# this subroutines writes out the various files used to comprise the
+# website skeleton
 
     my $title = shift;
 
@@ -160,7 +278,7 @@ sub create_skeleton {
 			    {-cellpadding=>'0',
 			     -cellspacing=>'6',
 			     -border=>'0',
-			     -width=>'620'
+			     -width=>'655'
 			     },
 			    
 			    "<!-- TABLE TOP ROW -->",
@@ -188,8 +306,7 @@ sub create_skeleton {
 			       
 			       "<!-- MIDDLE ROW: SECOND COLUMN -->",
 
-			       td({-bgcolor => $color,
-				   -width   => '2'},
+			       th({-width   => '3'},
 				  br()
 				  ),
 			       
@@ -197,7 +314,7 @@ sub create_skeleton {
 
 			       td({-valign => 'top',
 				   -halign => 'left',
-				   -width  => '498'},
+				   -width  => '552'},
 				  '<!--#include file="'.$title.'.html" -->'
 				  )			  
 			       ),
@@ -223,17 +340,9 @@ sub create_skeleton {
     
     # generate link to a cascading stylesheet file by the same name as the project,
     # lowercased and spaces exchanged against underscores '_'
-
-    $stylesheet = lc($projectName);
-    $stylesheet =~ s/ /_/ig;
-    $stylesheet .= ".css";
     
-    print start_html(-title   => $projectName.' > '.ucfirst($title),
-		     -bgcolor => '#FFFFFF',
-#		     -link    => '#770000',
-		     -link    => $color,
-		     -vlink   => '#0000AA',
-		     -style   => {-src => $stylesheet});
+    print start_html(-title => $projectName.' > '.ucfirst($title),
+		     -style => {-src => $stylesheet});
     
 #    print center($main_table);
  
@@ -245,23 +354,34 @@ sub create_skeleton {
 
 sub create_stylesheet {
 
-    my $fstylesheet = "a {  text-decoration: none}\n";
-    $fstylesheet   .= "a:hover   {  color: red; text-decoration: underline}\n";
-    $fstylesheet   .= "a:visited {  color: $color }\n";
-    $fstylesheet   .= "body { font-face: verdana, arial, sans-serif }\n";
+    print <<EOF;
 
-    print $fstylesheet;
+a         { text-decoration: none }
+
+a:hover   { color: red; text-decoration: underline }
+
+body      {
+            background-color: $bgcolor ;
+	    font-family: $font ;
+}
+
+th        {
+            background-color: $thcolor;
+	    font-family: copperplate;
+}
+
+EOF
 
 }
 
 # ---------------------------------------------------------------------
 sub create_content {
 # ---------------------------------------------------------------------
+# print the main content page/table intended for server-side inclusion
 
     my $title = shift;
     
-    print table({ # -bgcolor=>$hdrbgcolor,
-	          -cellspacing => '0',
+    print table({ -cellspacing => '0',
 		  -cellpadding => '5',
 		  -valign      => 'TOP',
 		  -width       => '100%',
@@ -269,82 +389,48 @@ sub create_content {
 		  }, 
 		
 		Tr(
-		   td({ -bgcolor =>$hdrbgcolor },
-		      font({-face => $font_face,
-			    -size => '5',
-			    -width =>'100%'},
-			   b(
-			     ucfirst($title)."&nbsp;"
-			     )
-			   ),
-		      )
+		   th(
+		      ucfirst($title)."&nbsp;"
+		      ),
 		   ),
 		
 		Tr(
 		   td(
-		      font({-face=>$font_face},
-			   ul(
-			      br,
-			      li($pageIndex{$title}."&nbsp;")
-			      )
-			   )
+		      ul(
+			 br,
+			 li($pageIndex{$title}."&nbsp;")
+			 )
 		      )
 		   )
 		);
-    
-#    print table({-cellspacing=>'0',
-#		 -border=>'0',
-#		 -width=>'100%'},
-		
-#		Tr(
-#		   td(
-#		      font({-face=>$font_face},
-#			   ul(
-#			      br,
-#			      li($pageIndex{$title}."&nbsp;")
-#			      )
-#			   )
-#		      )
-#		   )
-#		);
-    
 }
+
 
 # ---------------------------------------------------------------------
 sub create_left_menu {
 # ---------------------------------------------------------------------
+# creates the left navigation menu
+
+    my $namesArrRef = shift;
 
     my @table;
-    my $tRow;
 
-    foreach $name (@pageNames) {
+    foreach my $name (@{$namesArrRef}) {
 
-	$tRow = td({-bgcolor=>$hdrbgcolor},
-#		    -width=>'100%'},
-		   font({-size=>'2',
-			 -face=>$font_face
-			 },
-			b(
-			  a({-href => "$name.shtml"},
-			    ucfirst($name)."&nbsp;"
-			    )
-			  )
-			)
+	my $tRow = th(
+		   a({-href => "$name.shtml"},
+		     ucfirst($name)."&nbsp;"
+		     )
 		   );
 	
 	push @table, $tRow;
 	
-	$tRow = td({-bgcolor=>"white",
-		    -height =>'60',
-#		    -width  =>'100%',
+	$tRow = td({-height =>'60',
 		    -valign =>'top'},
-		   font({-size=>'2',
-			 -face=>$font_face
-			 },
+		   font({-size=>'2'},
 			$pageIndex{$name},
 			"&nbsp;",
 			br(),
-
 			)
 		   );
 	
@@ -355,7 +441,6 @@ sub create_left_menu {
     print table({-border      => '0',
 		 -cellpadding => '3',
 		 -cellspacing => '1',
-#		 -width       => '110',
 		 -align       => 'left'
 		 }, 
 		
@@ -365,23 +450,62 @@ sub create_left_menu {
     
 }
 
+
 # ---------------------------------------------------------------------
 sub create_header {
 # ---------------------------------------------------------------------
+# just prints the html for the header (either image or text)
 
-    my $header = center( img({-src=>'/mopo/images/header.gif'}) );
 
-    print $header;
+    # empty string to hold for html src
+    my $img = center( img({-src=>'your_image.png'}) );
+    my $text = center( h1($projectName) );
+
+    if ($image) {
+
+	my ($base,$path,$type) = fileparse($image);
+	$img  = center( img({-src=>"$base"}) );
+
+	print <<EOF;
+
+$img
+
+<!-- The header can be either image or text.  Comment-out the -->
+<!-- appropriate section (above|below).                       -->
+
+<!--
+$text-->
+
+EOF
+
+    }else{
+
+	print <<EOF;
+
+<!--
+$img-->
+
+<!-- The header can be either image or text.  Comment-out the      -->
+<!-- appropriate section (above|below, and specify the image src). -->
+
+$text
+
+EOF
+
+    }
 
 }
 
 # ---------------------------------------------------------------------
 sub create_footer {
 # ---------------------------------------------------------------------
+# subroutine writes the navigation footer at the bottom of each page
+
+    my $namesArrRef = shift;
 
     my @footer;
 
-    foreach $name (@pageNames) {
+    foreach my $name (@{$namesArrRef}) {
 
 	push @footer, a({-href=>"$name.shtml"}, ucfirst($name));
 	
@@ -399,7 +523,7 @@ sub create_footer {
 
     my $footer = p(
 		   center(
-			  font({-face =>$font_face,
+			  font({-face =>$font,
 				-size =>'2'},
 			       $all_footer
 			       )
@@ -407,4 +531,69 @@ sub create_footer {
 		   );
 
     print $footer;
+}
+
+
+# ---------------------------------------------------------------------
+sub Usage {
+# ---------------------------------------------------------------------
+# this subroutine simply prints out a usage message if the minimal
+# arguments are not passed
+
+
+    print STDOUT <<EOF;
+
+   $0 is a simple script to create a skeleton website, based on the
+   user-defined template
+_______________________________________________________________________
+   Usage:
+$0 -template <file/name> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
+_______________________________________________________________________
+
+
+    -template = required input file containing the project name and
+	        page titles For more information on the template
+	        format, try 'pod2text $0'
+
+    -sitename = required text_string which will be the name of the
+	        directory (newly created, if non-existent), where all
+	        the web pages will be written to
+
+    -rootpath = optional destination where the project website
+	        directory will be created; defaults to '$rootpath'
+
+    -font     = optional font face for the website (written to
+ 	        stylesheet) defaults to '$font' ; written/editable in
+ 	        stylesheet
+
+    -accent   = optional color for table header cells (website accent
+                color) defaults to '$thcolor' ; written/editable in
+                stylesheet
+
+    -image    = optional image which could be displayed at the top of
+	        every page.  The value for the image should be a
+	        relative or absolute URL.  If no image is specified
+	        the header defaults to the project name within the
+	        template, as a text header
+
+    -bgcolor  = optional background color for all webpages (body
+                backgroud) defaults to '$bgcolor' ; written/editable
+                in stylesheet
+
+    -verbose  = show feedback messages during run
+
+    -help     = print this message
+
+Many of the optional arguments can be configured afterwards, in the
+resulting stylesheet.
+
+EOF
+
+(!$templatefile) && print "ERROR : You did not provide a template file to work on.  \n\n";
+(!$sitename) && print "ERROR : You did not provide a sitename create the directory.  \n\n";
+
+
+    exit;
+
+
 }
