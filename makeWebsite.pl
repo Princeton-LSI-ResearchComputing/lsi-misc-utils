@@ -132,11 +132,43 @@ EOF
 
 my ($projectName, $pageNamesArrRef) = &readPageTitles();
 
+
 if ($sitename) {
 
-     &MakeDirectory($out, $sitename);
+    &MakeDirectory($out, $sitename);
 
+}elsif($out) {
+
+    # if they didn't ask for a new directory to be created (handled
+    # above, and we've already changed to that directory), but the
+    # user did specify that they wanted files created somewhere else
+    # but the current working directory, go to that 'out' directory
+    # now
+
+    $out =~ s|/*$|/|; # ensure trailing slash
+
+    unless(-d $out) {die "The specifed destination directory ($out) does not exist, or is not a directory."}
+    unless(-w $out) {die "The specifed destination ($out) is not writeable."};
+
+    $verbose && print "Changing directory to $out\n";
+
+    chdir($out) || die "Cannot chdir to $out ($!)";
 }
+
+
+if ($image) {
+
+    unless(-f $image && -r $image) {
+	print "WARNING: $image is not a file or is not readable.  Will not copy it to the site.\n";;
+	undef($image);
+    }else{
+	
+	my $cwd = getcwd();
+	$verbose && print "Copying $image to $cwd\n";
+	copy($image, $cwd) || die "Could not copy header image ($image) to the website ($cwd): $!\n";
+    }
+}
+
 
 my %pageIndex;
 
@@ -227,8 +259,6 @@ sub MakeDirectory {
 
     $out =~ s|/*$|/|; # ensure trailing slash
 
-    print "OUTDIR: $out\n";
-
     unless(-d $out) {die "The specifed destination directory ($out) does not exist, or is not a directory."}
     unless(-w $out) {die "The specifed destination ($out) is not writeable."};
 
@@ -239,20 +269,11 @@ sub MakeDirectory {
     $verbose && print "Creating website directory: $sitepath\n";
     mkdir($sitepath) || die "Could not make directory ($sitepath) : $!\n";
 
-
-    if ($image) {
-
-	$verbose && print "Copying $image to $sitepath\n";
-	copy($image, $sitepath) || die "Could not copy header image ($image) to the website ($sitepath): $!\n";
-
-    }
-
     $verbose && print "Changing directory to $sitepath\n";
-
     chdir($sitepath) || die "Cannot chdir to $sitepath ($!)";
 
-
 }
+
 
 
 # ---------------------------------------------------------------------
