@@ -14,16 +14,17 @@ _______________________________________________________________________
 
 
     -template = required input file containing the project name and
-	        page titles For more information on the template
-	        format, try 'pod2text $0'
+	        page titles
 
-    -sitename = required text_string which will be the name of the
-	        directory (newly created, if non-existent), where all
-	        the web pages will be written to.  A simple one word
+    -out      = optional destination (directory) where all the website
+	        files will be created.  If no -out destination is
+	        provided, it default to the working directory
+
+    -sitename = optional text_string which will be the name of a newly
+	        created directory, where all the web pages will be
+	        written to.  Only necessary if a site-enclosing
+	        directory is not already made; A simple one word
 	        string is all that is needed.
-
-    -rootpath = optional destination where the project website
-	        directory will be created; defaults to '$rootpath'
 
     -font     = optional font face for the website (written to
  	        stylesheet) defaults to '$font' ; written/editable in
@@ -79,6 +80,7 @@ use strict;
 
 use Getopt::Long;
 use File::Copy;
+use Cwd;
 use File::Basename;
 
 use CGI qw/:standard :netscape/;
@@ -88,17 +90,16 @@ use CGI::Pretty;
 # the following are the default options for making a website that will
 # be utilized by getopts
 
-my ($templatefile, $sitename, $pagecolor, $image, $help, $getTemplate, $verbose);
+my ($templatefile, $out, $sitename, $pagecolor, $image, $help, $getTemplate, $verbose);
 
 # defaults for this client
 my $font     = "technical, Verdana, Tahoma, Arial, sans-serif";
 my $thcolor  = "#9B664E"; # "LightSlateGrey", "grey" # color for header backgrounds
 my $thfont   = "copperplate";
 my $bgcolor  = "#E5D8C2"; # "white", background color
-my $rootpath = '/Genomics/lsi/www/html/pubs/';
 
 my %args = (template => \$templatefile,
-	    rootpath => \$rootpath,
+	    out      => \$out,
 	    sitename => \$sitename,
 	    font     => \$font,
 	    accent   => \$thcolor,
@@ -109,15 +110,17 @@ my %args = (template => \$templatefile,
 	    getTemplate  => \$getTemplate);
 
 
-unless( &GetOptions( \%args, "template=s", "rootpath=s", "sitename=s", "font=s", "accent=s", "image=s", "bgcolor=s", "verbose", "help", "getTemplate") ){
+unless( &GetOptions( \%args, "template=s", "out=s", "sitename=s", "font=s", "accent=s", "image=s", "bgcolor=s", "verbose", "help", "getTemplate") ){
     &Usage;
 }
 
 &WriteTemplate if ($getTemplate);
-&Usage if ($help || !$templatefile || !$sitename);
+&Usage if ($help || !$templatefile);
 
 
-print <<EOF;
+if($verbose) {
+
+    print <<EOF;
 
 Automatic Website Generator
 ---------------------------
@@ -125,10 +128,15 @@ Author:     Christian Rees, (c) Stanford University 2000
 Re-visited: John Matese, Princeton University
 
 EOF
+}
 
 my ($projectName, $pageNamesArrRef) = &readPageTitles();
 
-&MakeDirectories($rootpath, $sitename);
+if ($sitename) {
+
+     &MakeDirectory($out, $sitename);
+
+}
 
 my %pageIndex;
 
@@ -205,20 +213,29 @@ exit;
 
 
 # ---------------------------------------------------------------------
-sub MakeDirectories {
+sub MakeDirectory {
 # ---------------------------------------------------------------------
 #  this subroutine makes directories into which the html skeleton
 #  files are created
 
-    my ($rootpath, $sitename) = @_;
+    my ($out, $sitename) = @_;
 
-    unless(-d $rootpath) {die "The specifed root directory ($rootpath) does not exist, or is not a directory."}
-    unless(-w $rootpath) {die "The specifed rootpath ($rootpath) is not writeable."};
+    # if they didn't specify an out directory, find where we are
+    if (!$out) {
+	$out = getcwd();
+    }
+
+    $out =~ s|/*$|/|; # ensure trailing slash
+
+    print "OUTDIR: $out\n";
+
+    unless(-d $out) {die "The specifed destination directory ($out) does not exist, or is not a directory."}
+    unless(-w $out) {die "The specifed destination ($out) is not writeable."};
 
 
-    $sitename =~ tr/ /_/; # transform spaces to underscore
+    $sitename =~ tr/ /_/; # transform spaces to underscores
 
-    my $sitepath = $rootpath.$sitename;
+    my $sitepath = $out.$sitename;
     $verbose && print "Creating website directory: $sitepath\n";
     mkdir($sitepath) || die "Could not make directory ($sitepath) : $!\n";
 
@@ -565,7 +582,7 @@ sub Usage {
    user-defined template
 _______________________________________________________________________
    Usage:
-$0 -template <file/name> -sitename <sitename> [-rootpath <path/to/website> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
+$0 -template <file/name> [-sitename <sitename> -out <destination/dir/> -font <'font_face(s)'> -accent <color> -image </path/to/image.gif> -bgcolor <page_color> -verbose]
 _______________________________________________________________________
 
 
@@ -573,14 +590,15 @@ _______________________________________________________________________
 	        page titles For more information on the template
 	        format, try 'pod2text $0'
 
-    -sitename = required text_string which will be the name of the
-	        directory (newly created, if non-existent), where all
-	        the web pages will be written to.  A simple one word
-	        string is all that is needed.
+    -out      = optional destination (directory) where all the website
+	        files will be created.  If no -out destination is
+	        provided, it defaults to the current working directory
 
-    -rootpath = optional destination where the project website
-	        directory will be created;
-	        defaults to '$rootpath'
+    -sitename = optional text_string which will be the name of a newly
+	        created directory, where all the web pages will be
+	        written to.  Only necessary if a site-enclosing
+	        directory is not already made; A simple one word
+	        string is all that is needed.
 
     -font     = optional font face for the website
  	        defaults to '$font' ;
@@ -614,8 +632,6 @@ resulting stylesheet.
 EOF
 
 (!$templatefile && !$help) && print "ERROR : You did not provide a template file to work on.  \n\n";
-(!$sitename && !$help) && print "ERROR : You did not provide a sitename create the directory.  \n\n";
-
 
     exit;
 
@@ -632,7 +648,7 @@ sub WriteTemplate {
 
     my $temp = "site_template.txt";
 
-    print STDOUT "Writing an example template file : $temp \n";
+    $verbose && print STDOUT "Writing an example template file : $temp \n";
 
     open (CONF, ">$temp") || die "Couldn't open example template file, $temp\n";
 
@@ -661,11 +677,11 @@ EOF
 
     close(CONF);
 
-    print STDOUT "\nYou can now edit $temp \n",
+    $verbose && print STDOUT "\nYou can now edit $temp \n",
     "and then re-run $0 \n",
     "using the option \'-template $temp)\' .\n\n";
 
-    print STDOUT "Finished.  Exiting... \n";
+    $verbose && print STDOUT "Finished.  Exiting... \n";
 
     exit(0);
 
