@@ -35,7 +35,7 @@ _______________________________________________________________________
 
     -image    = optional image which could be displayed at the top of
 	        every page.  The value for the image should be a
-	        relative or absolute URL.  If no image is specified
+	        filepath.  If no image is specified
 	        the header defaults to the project name within the
 	        template, as a text header
 
@@ -585,7 +585,7 @@ _______________________________________________________________________
 
     -image    = optional image which could be displayed at the top of
 	        every page.  The value for the image should be a
-	        relative or absolute URL.  If no image is specified
+	        filepath.  If no image is specified
 	        the header defaults to the project name within the
 	        template, as a text header
 
