@@ -436,7 +436,9 @@ sub create_content {
 # print the main content page/table intended for server-side inclusion
 
     my $title = shift;
-    
+
+    my $defaultRows = &create_default_rows(lc($title));
+
     print table({ -cellspacing => '0',
 		  -cellpadding => '5',
 		  -valign      => 'TOP',
@@ -457,10 +459,79 @@ sub create_content {
 			 li($pageIndex{$title}."&nbsp;")
 			 )
 		      )
-		   )
+		   ),
+		$defaultRows
 		);
+
 }
 
+
+# ---------------------------------------------------------------------
+sub create_default_rows {
+# ---------------------------------------------------------------------
+# for some page titles(links, software), we're going to assume that a
+# little default content is not a bad thing (they can always delete
+# it)
+
+    my $title = shift;
+
+    my $defaultRows = undef;
+
+    if ($title eq 'links') {
+
+	$defaultRows = Tr(
+			  td(
+			     a({-href=>'http://puma.princeton.edu/'},
+			       img({-src=>"http://genomics-pubs.princeton.edu/images/pumadb_minibanner.gif"}),
+			       "Princeton University MicroArray database")
+			     )
+			  ).
+			Tr(
+			   td(
+			      a({-href=>"http://www.yeastgenome.org/"},
+				img({-src=>"http://genomics-pubs.princeton.edu/images/sgd_thumbnail.gif"}),
+				"Saccharomyces Genome Database")
+			      )
+			   ).
+			   "\n<!--IF YOU HAVE A PUBLICATION IN PUMAdb, REPLACE THE ### IN THE URL BELOW-->\n".
+			   "<!--WITH THE PUBLICATION_NO ASSIGNED BY THE DATABASE-->\n\n".
+			   "<!--\n".
+			 Tr(
+			    td(
+			       a({-href=>"http://puma.princeton.edu/cgi-bin/publication/viewPublication.pl?pub_no=###"},
+				 img({-src=>"http://genomics-pubs.princeton.edu/images/pumadb_minibanner.gif"}),
+				 "Published data in the Princeton University MicroArray database")
+			       ).
+			    "\n-->\n\n"
+			    );
+
+
+    }elsif($title eq 'software') {
+
+	$defaultRows = Tr(
+			  td(
+			     a({-href=>"http://jtreeview.sourceforge.net/"},
+			       img({-src=>"http://genomics-pubs.princeton.edu/images/treeView.gif"}),
+			       "Java TreeView")
+			     )
+			  );
+
+
+    }elsif($title eq 'data') {
+
+	$defaultRows = Tr(
+			  td("\n<!--IF YOU HAVE A PUBLICATION IN PUMAdb, REPLACE THE ### IN THE URL BELOW-->\n".
+			     "<!--WITH THE PUBLICATION_NO ASSIGNED BY THE DATABASE-->\n\n".
+			     a({-href=>"http://puma.princeton.edu/cgi-bin/publication/viewPublication.pl?pub_no=###"},
+			       img({-src=>"http://genomics-pubs.princeton.edu/images/pumadb_minibanner.gif"}),
+			       "Published data in the Princeton University MicroArray database")
+			     )
+			  );
+    }
+
+    return($defaultRows);
+
+}
 
 # ---------------------------------------------------------------------
 sub create_left_menu {
