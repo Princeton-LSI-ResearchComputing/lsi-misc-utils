@@ -90,13 +90,20 @@ while ( my $feature = $gffio->next_feature() ) {
 
 	# Store in hash by name
 	my $annotationCollection = $feature->annotation();
-	my @tags                 = $feature->get_tag_values($id_annotatation);
-	if ( scalar @tags < 1 ) {
-		croak
-"Feature in GFF file '$gff_filename' does not have the specified id annotation attribute: '"
-		  . $id_annotatation . "'.";
+	my @tags                 = $feature->get_all_tags();
+	my @tagvalues            = ();
+	#print $feature->gff_string();
+	if ( $feature->has_tag($id_annotatation) ) { #}grep( /^$id_annotatation$/, @tags ) ) {
+		@tagvalues = $feature->get_tag_values($id_annotatation);
 	}
-	my $feature_name = trim( $tags[0] );
+	if ( scalar @tagvalues < 1 || $feature->primary_tag() ne "CDS" ) {
+		next;
+		print "Skipping " . $tagvalues[0] ."\n";
+		 #		croak
+		 #"Feature in GFF file '$gff_filename' does not have the specified id annotation attribute: '"
+		 #		  . $id_annotatation . "'.";
+	}
+	my $feature_name = trim( $tagvalues[0] );
 
 	# Create ARRAY of feature locations to account for splits
 	my @locations = ();
@@ -106,7 +113,8 @@ while ( my $feature = $gffio->next_feature() ) {
 		  $gfffeatures{ $feature_name . "(" . $feature->strand() . ")" };
 		@locations = @$locref;
 		push( @locations, $feature );
-	} else {
+	}
+	else {
 		@locations = ($feature);
 	}
 	$gfffeatures{ $feature_name . "(" . $feature->strand() . ")" } =
@@ -134,12 +142,14 @@ while ( my ( $feature_name, $subfeaturesref ) = each(%gfffeatures) ) {
 				  $fasta_seqs->{ $feature->seq_id() }
 				  ->trunc( $feature->start, $feature->end )->revcom()->seq()
 				  . $feature_seq;
-			} else {
+			}
+			else {
 				$feature_seq .=
 				  $fasta_seqs->{ $feature->seq_id() }
 				  ->trunc( $feature->start, $feature->end )->seq();
 			}
-		} else {
+		}
+		else {
 			warn(   "Can't find sequence '"
 				  . $feature->seq_id()
 				  . "' from gff feature '"
