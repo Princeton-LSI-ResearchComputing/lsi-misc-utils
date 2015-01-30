@@ -12,3 +12,6 @@ Institute for Integrative Genomics at Princeton University.
 
 * `translate` - Translate columns of text based on dictionary. Very flexible
   with many options.
+
+* `translate_cds.pl` - Extract CDS regions from fasta reference and gff file
+  and (optionally) translate into amino acid sequences.
