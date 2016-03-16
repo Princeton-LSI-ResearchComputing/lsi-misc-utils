@@ -50,7 +50,7 @@ while read line; do
             usage
             exit
         else  
-            if grep -q "numEntries: 1" <<<$out; then
+            if grep -q -i "uid=$line" <<<$out; then
             #if [[ $out != "" ]]; then
                     echo "FOUND"
             else
