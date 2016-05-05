@@ -43,19 +43,19 @@ shift $(($OPTIND - 1))
 FILE=$1
 while read line; do
         echo -ne "$line - "
-        out=$(ldapsearch $START_TLS $SIMPLE_AUTHENTICATION -h $LDAP_HOST -p $LDAP_PORT -b "$LDAP_BASE_DN" "(uid=$line)")
+        out=$(ldapsearch -LLL $START_TLS $SIMPLE_AUTHENTICATION -h $LDAP_HOST -p $LDAP_PORT -b "$LDAP_BASE_DN" "(uid=$line)")
         ret=$?
         if [[ $ret -ne 0 ]]; then
             echo "ERROR: Exit code '$ret' executing ldapsearch"
             usage
             exit
-        else  
-            if grep -q "numEntries: 1" <<<$out; then
+        else
+            if grep -q -i "uid: $line" <<<$out; then
             #if [[ $out != "" ]]; then
                     echo "FOUND"
             else
                     echo "NOT FOUND"
-            fi 
+            fi
             if [[ $VERBOSE == 1 ]]; then
                 printf "$out"
                 echo ""
