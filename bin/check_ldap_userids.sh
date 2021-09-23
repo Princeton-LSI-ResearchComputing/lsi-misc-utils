@@ -49,7 +49,7 @@ while read -r line; do
             echo "SKIPPED"
             continue
         fi
-        out=$(ldapsearch -x -h "$LDAP_HOST" -p "$LDAP_PORT" -b "$LDAP_BASE_DN" -D "$LDAP_BIND_DN" -w "$PASSWORD" "(uid=$line)")
+        out=$(ldapsearch -x -h "$LDAP_HOST" -p "$LDAP_PORT" -b "$LDAP_BASE_DN" -D "$LDAP_BIND_DN" -w "$PASSWORD" -o ldif-wrap=no "(uid=$line)" "db")
         ret=$?
         if [[ $ret -ne 0 ]]; then
             echo "ERROR: Exit code '$ret' executing ldapsearch"
