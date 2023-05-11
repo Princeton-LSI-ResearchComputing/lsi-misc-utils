@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 VERBOSE=0
-LDAP_HOST="pu.win.princeton.edu"
+LDAP_HOST="pdom05.pu.win.princeton.edu"
 LDAP_PORT=389
 LDAP_BASE_DN="dc=pu,dc=win,dc=princeton,dc=edu"
 LDAP_BIND_DN="$(whoami)@princeton.edu"
@@ -38,6 +38,10 @@ done
 shift $((OPTIND - 1))
 
 FILE=$1
+
+echo "Connecting to $LDAP_HOST on port $LDAP_PORT"
+echo "Using BASE_DN $LDAP_BASE_DN and BIND_DN $LDAP_BIND_DN"
+echo "Reading NetIDs from file: $FILE"
 
 echo "Enter password for $LDAP_BIND_DN (will be used on commandline)"
 read -r -s PASSWORD
