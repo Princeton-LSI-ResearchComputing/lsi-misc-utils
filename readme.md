@@ -1,5 +1,4 @@
-Princeton-Genomics Utilities
-----------------------------
+# Princeton-Genomics Utilities
 
 [![GitHub Super-Linter](https://github.com/Princeton-LSI-ResearchComputing/lsi-misc-utils/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
@@ -9,8 +8,8 @@ Institute for Integrative Genomics at Princeton University.
 * `check_ldap_userids.sh` - Takes a list of LDAP userids and searches LDAP for
   current records. Used to find inactive accounts.
 
-* `makeWebsite.pl` - Generates a simple template HTML website used for
-  supplemental websites for publications.
+* `makeWebsite.pl` - Generates a simple template HTML site used for
+  supplemental sites for publications.
 
 * `translate` - Translate columns of text based on dictionary. Very flexible
   with many options.
