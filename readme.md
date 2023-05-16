@@ -1,6 +1,8 @@
 Princeton-Genomics Utilities
 ----------------------------
 
+[![GitHub Super-Linter](https://github.com/Princeton-LSI-ResearchComputing/lsi-misc-utils/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+
 Miscellaneous utilities from the Bioinformatics group at the Lewis-Sigler
 Institute for Integrative Genomics at Princeton University.
 
